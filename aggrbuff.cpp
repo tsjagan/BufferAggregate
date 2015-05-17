@@ -384,7 +384,7 @@ void unit_tests()
     test_copy_constructor();
     test_iteration();
     test_rw_aggr_buf();
-    test_non_contigous();
+    test_non_contiguous();
 }
 
 int main(void)

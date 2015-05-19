@@ -17,7 +17,7 @@
 /*
  * JAGAN:
  * Implementation of an aggregate buffer.
- * Mugen block_cache should use aggregate buffer.
+ * A cache should use aggregate buffer.
  * As a consequence, other layers that interact with
  * the cache should also use this. We want to avoid all
  * memory copies.

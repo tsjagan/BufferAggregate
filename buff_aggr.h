@@ -140,6 +140,13 @@ class BuffAggr {
             return false;
         }
 
+        BufPtr get_buf(uint32_t off) {
+            uint32_t o;
+            if (this->find_buf(off, o) == true )
+                return bufs_[o];
+            return nullptr;
+        }
+
         bool splice(uint32_t off, uint32_t size) {
             this->split(off);
             this->split(off + size);

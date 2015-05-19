@@ -140,6 +140,10 @@ class BuffAggr {
             return false;
         }
 
+        void remove_buf(uint32_t off) {
+            bufs_.erase(off);
+        }
+
         BufPtr get_buf(uint32_t off) {
             uint32_t o;
             if (this->find_buf(off, o) == true )

@@ -15,7 +15,6 @@ using std::endl;
 class BlockCache {
     CacheMapPtr rmap_;
     CacheMapPtr wmap_;
-    std::mutex wmutex_;
 
     public:
         BlockCache() {
@@ -28,13 +27,16 @@ class BlockCache {
             return true;
         }
         void add_block(uint32_t id, uint32_t off, uint8_t *buf) {
-            std::lock_guard<std::mutex> wlock(wmutex_);
             CacheMap *wmap = new CacheMap(*rmap_);
-            AggrPtr bag = std::make_shared<BuffAggr>(id);
+            AggrPtr bag;
+            if ( this->exists(id) == true )
+                bag = std::make_shared<BuffAggr>(*(*wmap)[id]);
+            else
+                bag = std::make_shared<BuffAggr>(id);
             bag->set_buf(buf, off, blk_size);
             (*wmap)[id] = bag;
             CacheMapPtr tmap = std::make_shared<CacheMap>(*wmap);
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            //std::this_thread::sleep_for(std::chrono::seconds(1));
             rmap_ = tmap;
             delete wmap;
         }
@@ -46,6 +48,16 @@ class BlockCache {
             if ( res == nullptr )
                 return false;
             return true;
+        }
+        void remove_block(uint32_t id, uint32_t off){
+            CacheMap *wmap = new CacheMap(*rmap_);
+            assert ( this->exists(id) == true );
+            AggrPtr bag = std::make_shared<BuffAggr>(*(*wmap)[id]);
+            bag->remove_buf(off);
+            (*wmap)[id] = bag;
+            CacheMapPtr tmap = std::make_shared<CacheMap>(*wmap);
+            rmap_ = tmap;
+            delete wmap;
         }
 };
 
@@ -63,24 +75,40 @@ void add_blocks(BlockCache *cache)
 {
     assert ( cache != NULL );
     for( uint32_t i = 0; i < 10; i++ ) {
-        uint8_t *buf = create_buf(blk_size);
-        cache->add_block(i, 0, buf);
-        cout << "Adding block in file " << i << endl;
+        for( uint32_t j = 0; j < 10; j++ ) {
+            uint8_t *buf = create_buf(blk_size);
+            cache->add_block(i, j*blk_size, buf);
+        }
     }
 }
 
 void get_blocks(BlockCache *cache)
 {
     assert ( cache != NULL );
+    std::srand(std::time(0));
     for( uint32_t i = 0; i < 10; i++ ) {
-        BufPtr b;
-        bool ret = false;
-        while( ret == false ) {
-            ret = cache->get_block(i, 0, b);
-            cout << "Waiting till block for file " << i << " is in cache" << endl;
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+        for( uint32_t j = 0; j < 10; j++ ) {
+            BufPtr b;
+            bool ret = false;
+            ret = cache->get_block(i, j*blk_size, b);
+            if ( ret == true ) {
+                cout << "Got block in file " << i << " at off " << j
+                 << ": "<< std::hex << b->buf() << endl;
+            } else {
+                cout << "Not found block in file " << i << " at off " << j << endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
         }
-        cout << "Got block in file " << i << ": "<< std::hex << b->buf() << endl;
+    }
+}
+
+void remove_blocks(BlockCache *cache)
+{
+    assert ( cache != NULL );
+    for( uint32_t i = 0; i < 10; i++ ) {
+        for( uint32_t j = 0; j < 5; j++ ) {
+            cache->remove_block(i, j*blk_size);
+        }
     }
 }
 
@@ -88,9 +116,16 @@ int main(void)
 {
     BlockCache cache;
     std::thread *ta = new std::thread(add_blocks, &cache);
+    ta->join();
+
+
+    std::thread *tr = new std::thread(remove_blocks, &cache);
 
     std::thread *tg = new std::thread(get_blocks, &cache);
-    ta->join();
+    tr->join();
     tg->join();
+    delete ta;
+    delete tr;
+    delete tg;
     return 0;
 }

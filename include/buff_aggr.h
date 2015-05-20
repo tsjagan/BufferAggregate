@@ -141,7 +141,8 @@ class BuffAggr {
         }
 
         void remove_buf(uint32_t off) {
-            bufs_.erase(off);
+            if ( bufs_.find(off) != bufs_.end() )
+                bufs_.erase(off);
         }
 
         BufPtr get_buf(uint32_t off) {

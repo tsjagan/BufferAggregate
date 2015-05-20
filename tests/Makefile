@@ -1,10 +1,10 @@
 all: unit_test thread_test
 
 unit_test: test_buff_aggr.cpp
-	     g++ --std=c++11 -g -o unit_test test_buff_aggr.cpp
+	     g++ --std=c++11 -I../include -g -o unit_test test_buff_aggr.cpp
 
-thread_test: block_cache.cpp
-	     g++ --std=c++11 -g -pthread -o test_block_cache block_cache.cpp
+thread_test: test_block_cache.cpp
+	     g++ --std=c++11 -I../include -g -pthread -o test_block_cache test_block_cache.cpp
 
 
 clean:

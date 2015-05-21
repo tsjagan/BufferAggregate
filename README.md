@@ -14,9 +14,11 @@ A simple implementation of buffer aggregates.
 - This is a simple implementation of a Bufferaggregate data structure.
 - Also, included is a lockless blockcache implementation that uses Bufferaggregate.
 
-Refer to,
+Motivation for this project is from a paper/project called
+IOLite, by some people from Rice University. Below is the link for the paper.
 https://www.usenix.org/legacy/publications/library/proceedings/osdi99/full_papers/pai/pai_html/node5.html
-for the motivation.
+
+That said, this project does not implement the above paper. So the guarantees and performance may widely differ.
 
 PS:
 - Requires. c++11 compiler

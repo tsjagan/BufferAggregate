@@ -1,6 +1,7 @@
 #ifndef __BLOCK_CACHE_H_
 #define __BLOCK_CACHE_H_
 
+#include <mutex>
 #include "buff_aggr.h"
 
 // Lockless block cache using Buffer Aggregates
@@ -13,7 +14,7 @@ using std::endl;
 
 class BlockCache {
     CacheMapPtr rmap_;
-    CacheMapPtr wmap_;
+    std::mutex cache_mutex_;
 
     public:
         BlockCache() {
@@ -26,19 +27,18 @@ class BlockCache {
             return true;
         }
         void add_block(uint32_t id, uint32_t off, uint8_t *buf) {
-            CacheMap *wmap = new CacheMap(*rmap_);
+            std::lock_guard<std::mutex> lock(cache_mutex_);
             AggrPtr bag;
             if ( this->exists(id) == true )
-                bag = std::make_shared<BuffAggr>(*(*wmap)[id]);
+                bag = std::make_shared<BuffAggr>(*(*rmap_)[id]);
             else
                 bag = std::make_shared<BuffAggr>(id);
             bag->set_buf(buf, off, blk_size);
-            (*wmap)[id] = bag;
-            CacheMapPtr tmap = std::make_shared<CacheMap>(*wmap);
-            rmap_ = tmap;
-            delete wmap;
+            (*rmap_)[id] = bag;
         }
+
         bool get_block(uint32_t id, uint32_t off, BufPtr &res) {
+            std::lock_guard<std::mutex> lock(cache_mutex_);
             if ( this->exists(id) == false ){
                 return false;
             }
@@ -48,16 +48,13 @@ class BlockCache {
             return true;
         }
         void remove_block(uint32_t id, uint32_t off){
-            CacheMap *wmap = new CacheMap(*rmap_);
+            std::lock_guard<std::mutex> lock(cache_mutex_);
             if ( this->exists(id) == false ) {
                 return;
             }
-            AggrPtr bag = std::make_shared<BuffAggr>(*(*wmap)[id]);
+            AggrPtr bag = std::make_shared<BuffAggr>(*(*rmap_)[id]);
             bag->remove_buf(off);
-            (*wmap)[id] = bag;
-            CacheMapPtr tmap = std::make_shared<CacheMap>(*wmap);
-            rmap_ = tmap;
-            delete wmap;
+            (*rmap_)[id] = bag;
         }
 };
 #endif

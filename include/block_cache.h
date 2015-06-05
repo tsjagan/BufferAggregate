@@ -35,7 +35,6 @@ class BlockCache {
             bag->set_buf(buf, off, blk_size);
             (*wmap)[id] = bag;
             CacheMapPtr tmap = std::make_shared<CacheMap>(*wmap);
-            //std::this_thread::sleep_for(std::chrono::seconds(1));
             rmap_ = tmap;
             delete wmap;
         }

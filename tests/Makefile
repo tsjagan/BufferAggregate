@@ -10,3 +10,6 @@ thread_test: test_block_cache.cpp
 clean:
 	rm -f ./unit_test
 	rm -f ./test_block_cache
+
+rmcore:
+	rm -f \"core*

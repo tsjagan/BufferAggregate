@@ -18,7 +18,6 @@ void add_blocks(BlockCache *cache)
         for( uint32_t j = 0; j < 100; j++ ) {
             uint8_t *buf = create_buf(blk_size);
             cache->add_block(0, j*blk_size, buf);
-            std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
         }
     }
 }
@@ -37,7 +36,6 @@ void get_blocks(BlockCache *cache)
             } else {
                 cout << "Not found block in file " << i << " at off " << j << endl;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
         }
     }
 }
@@ -48,7 +46,6 @@ void remove_blocks(BlockCache *cache)
     for( uint32_t i = 0; i < 1000; i++ ) {
         for( uint32_t j = 0; j < 100; j++ ) {
             cache->remove_block(0, j*blk_size);
-            std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
         }
     }
 }
@@ -65,7 +62,7 @@ int main(void)
     std::thread *tg = new std::thread(get_blocks, &cache);
 
     ta->join();
-    tr->join();
+     tr->join();
     tg->join();
 
     delete ta;

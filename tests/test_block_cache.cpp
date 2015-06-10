@@ -30,12 +30,6 @@ void get_blocks(BlockCache *cache)
             BufPtr b;
             bool ret = false;
             ret = cache->get_block(0, j*blk_size, b);
-            if ( ret == true ) {
-                cout << "Got block in file " << 0 << " at off " << j
-                 << ": "<< std::hex << b->buf() << endl;
-            } else {
-                cout << "Not found block in file " << i << " at off " << j << endl;
-            }
         }
     }
 }
@@ -57,16 +51,16 @@ int main(void)
 
     std::thread *ta = new std::thread(add_blocks, &cache);
 
-    std::thread *tr = new std::thread(remove_blocks, &cache);
-
     std::thread *tg = new std::thread(get_blocks, &cache);
 
+    std::thread *tr = new std::thread(remove_blocks, &cache);
+
     ta->join();
-     tr->join();
     tg->join();
+    tr->join();
 
     delete ta;
-    delete tr;
     delete tg;
+    delete tr;
     return 0;
 }

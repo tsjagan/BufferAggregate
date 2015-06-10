@@ -2,6 +2,7 @@
 #define __BLOCK_CACHE_H_
 
 #include <mutex>
+#include <atomic>
 #include "buff_aggr.h"
 
 // Lockless block cache using Buffer Aggregates
@@ -17,44 +18,62 @@ class BlockCache {
     std::mutex cache_mutex_;
 
     public:
-        BlockCache() {
-            rmap_ = std::make_shared<CacheMap>();
+        BlockCache() :
+            rmap_(new CacheMap()) {
         }
-        bool exists(uint32_t id) {
-            if ( rmap_->find(id) == rmap_->end() ) {
+
+        // read only operations
+        bool exists(CacheMapPtr r, uint32_t id) {
+            if ( r->find(id) == r->end() ) {
                 return false;
             }
             return true;
         }
-        void add_block(uint32_t id, uint32_t off, uint8_t *buf) {
+
+        CacheMapPtr get_cache_ptr() {
             std::lock_guard<std::mutex> lock(cache_mutex_);
-            AggrPtr bag;
-            if ( this->exists(id) == true )
-                bag = std::make_shared<BuffAggr>(*(*rmap_)[id]);
-            else
-                bag = std::make_shared<BuffAggr>(id);
-            bag->set_buf(buf, off, blk_size);
-            (*rmap_)[id] = bag;
+            CacheMapPtr temp = std::make_shared<CacheMap>(*rmap_);
+            return temp;
+        }
+
+        void put_cache_ptr(CacheMapPtr in){
+            std::lock_guard<std::mutex> lock(cache_mutex_);
+            rmap_ = in;
         }
 
         bool get_block(uint32_t id, uint32_t off, BufPtr &res) {
-            std::lock_guard<std::mutex> lock(cache_mutex_);
-            if ( this->exists(id) == false ){
+            CacheMapPtr temp = this->get_cache_ptr();
+            if ( this->exists(temp, id) == false ){
                 return false;
             }
-            res = (*rmap_)[id]->get_buf(off);
+            res = (*temp)[id]->get_buf(off);
             if ( res == nullptr )
                 return false;
             return true;
         }
+
+        // read write operations
+        void add_block(uint32_t id, uint32_t off, uint8_t *buf) {
+            CacheMapPtr temp = this->get_cache_ptr();
+            AggrPtr bag;
+            if ( this->exists(temp, id) == true )
+                bag = std::make_shared<BuffAggr>(*(*temp)[id]);
+            else
+                bag = std::make_shared<BuffAggr>(id);
+            bag->set_buf(buf, off, blk_size);
+            (*temp)[id] = bag;
+            this->put_cache_ptr(temp);
+        }
+
         void remove_block(uint32_t id, uint32_t off){
-            std::lock_guard<std::mutex> lock(cache_mutex_);
-            if ( this->exists(id) == false ) {
+            CacheMapPtr temp = this->get_cache_ptr();
+            if ( this->exists(temp, id) == false ) {
                 return;
             }
-            AggrPtr bag = std::make_shared<BuffAggr>(*(*rmap_)[id]);
+            AggrPtr bag = std::make_shared<BuffAggr>(*(*temp)[id]);
             bag->remove_buf(off);
-            (*rmap_)[id] = bag;
+            (*temp)[id] = bag;
+            this->put_cache_ptr(temp);
         }
 };
 #endif
